@@ -1,7 +1,7 @@
 const jwt = require("jsonwebtoken");
 
 function profileMiddleware(req, res, next) {
-  console.log('check p1')
+  console.log('check p12')
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
