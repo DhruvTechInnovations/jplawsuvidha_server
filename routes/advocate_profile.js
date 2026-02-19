@@ -2,8 +2,25 @@ const express = require("express");
 const pool = require("../db/pg");
 const authMiddleware = require("../middleware/profileMiddleware");
 const profileMiddleware = require("../middleware/profileMiddleware");
+const {image_storage,s3}=require('../helper/login/s3client.js')
+const { v4: uuidv4 } = require("uuid");
+const{PutObjectCommand} =require('@aws-sdk/client-s3')
+// const { GetObjectCommand } =require("@aws-sdk/client-s3");
+// const { getSignedUrl } =require("@aws-sdk/s3-request-presigner");
+
 
 const profile_router = express.Router();
+// async function generateSignedUrl(fileKey) {
+//   const command = new GetObjectCommand({
+//     Bucket: process.env.AWS_BUCKET_NAME,
+//     Key: fileKey,
+//   });
+
+//   // URL valid for 1 hour
+//   const signedUrl = await getSignedUrl(s3, command, { expiresIn: 3600 });
+//   return signedUrl;
+// }
+
 
 profile_router.get("/profile", profileMiddleware, async (req, res) => {
   try {
@@ -27,13 +44,16 @@ profile_router.get("/profile", profileMiddleware, async (req, res) => {
         mobile AS "phone",
         address,
         state,
-        postal_code AS "zipcode"
+        postal_code AS "zipcode",
+        profile_image
       FROM user_history
       WHERE email = $1
       LIMIT 1
     `;
 
     const { rows } = await pool.query(query, [email]);
+    // const fileKey=rows[0].fileKey
+    // const url = await generateSignedUrl(fileKey);
     console.log('this is from fetching profile',rows)
 
     if (rows.length === 0) {
@@ -74,7 +94,50 @@ profile_router.put('/profile',profileMiddleware,async (req,res)=>{
   }
 })
 
+profile_router.post(
+  "/profile/upload-profile",
+  image_storage.single("file"),
+  profileMiddleware,
+  async (req, res) => {
+    try {
+      console.log('inside photo upload')
+      const {email} = req.user;
+      const file = req.file;
+      console.log('file',req.file)
 
+      if (!file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      const fileKey = `profiles/${uuidv4()}-${file.originalname}`;
+
+      const uploadParams = {
+        Bucket: process.env.AWS_BUCKET_PROFILE,
+        Key: fileKey,
+        Body: file.buffer,
+        ContentType: file.mimetype,
+      };
+
+      await s3.send(new PutObjectCommand(uploadParams));
+
+      const imageUrl = `https://${process.env.AWS_BUCKET_PROFILE}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileKey}`;
+
+      await pool.query(
+        `UPDATE user_history SET profile_image=$1 WHERE email=$2`,
+        [imageUrl, email]
+      );
+
+      res.json({
+        message: "Profile uploaded successfully",
+        imageUrl,
+      });
+
+    } catch (err) {
+      console.error("S3 upload error:", err);
+      res.status(500).json({ message: "Upload failed" });
+    }
+  }
+);
 
 
 module.exports = profile_router;
