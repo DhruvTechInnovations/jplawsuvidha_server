@@ -76,8 +76,8 @@ profile_router.put('/profile',profileMiddleware,async (req,res)=>{
         message: "Unauthorized: invalid access token",
       });
     }
-    const{state,zipcode,phone,address}=req.body
-   const result=await pool.query(`UPDATE user_history SET state=$1,postal_code=$2,country=$3,address=$4,mobile=$5,plast_update=NOW() where email=$6 RETURNING *`,[state,zipcode,'India',address,phone,email])
+    const{state,zipcode,phone,address,fullName}=req.body
+   const result=await pool.query(`UPDATE user_history SET lawyername=$1,state=$2,postal_code=$3,country=$4,address=$5,mobile=$6,plast_update=NOW() where email=$7 RETURNING *`,[fullName,state,zipcode,'India',address,phone,email])
    console.log('updated result for the profile update is ',result.rows[0])
 
     return res.status(200).json({
@@ -99,6 +99,7 @@ profile_router.post(
   image_storage.single("file"),
   profileMiddleware,
   async (req, res) => {
+    console.log('inside post of profile')
     try {
       console.log('inside photo upload')
       const {email} = req.user;

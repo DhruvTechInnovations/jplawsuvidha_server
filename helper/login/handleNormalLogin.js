@@ -18,6 +18,7 @@ function generateTokens(payload) {
 }
 
 async function handleNormalLogin(email, password, res) {
+  console.log('new check')
   const loginResult = await pool.query(
     `SELECT password FROM AdvocateLogin WHERE email=$1`,
     [email]
@@ -58,6 +59,7 @@ async function handleNormalLogin(email, password, res) {
     .json({
       status: 'success',
       token,
+      email
     });
 }
 module.exports=handleNormalLogin

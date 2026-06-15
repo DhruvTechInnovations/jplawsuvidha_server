@@ -12,6 +12,7 @@ validate_router.get('/validate',verifyRefreshToken,async(req,res)=>{
       { expiresIn: '15m' }
     );
   //  console.log(accessToken)
+    console.log('successful')
     res.status(200).json({
       status: 'success',
       token: accessToken,
@@ -21,4 +22,32 @@ validate_router.get('/validate',verifyRefreshToken,async(req,res)=>{
     res.status(500).json({ status: 'error', message: 'Failed to validate login' });
   }
 })
+validate_router.post('/mobile/refresh', async (req, res) => {
+  console.log('mobile/refresh')
+  const { refreshToken } = req.body;
+
+  try {
+    const decoded = jwt.verify(
+      refreshToken,
+      process.env.REFRESH_JWT_SECRET
+    );
+
+    const newAccessToken = jwt.sign(
+      {
+        email: decoded.email,
+        role: decoded.role,
+        isAdmin: decoded.isAdmin
+      },
+      process.env.ACCESS_JWT_SECRET,
+      { expiresIn: '15m' }
+    );
+
+    res.json({ token: newAccessToken });
+
+  } catch (err) {
+    return res.status(401).json({
+      message: 'Invalid refresh token',
+    });
+  }
+});
 module.exports=validate_router

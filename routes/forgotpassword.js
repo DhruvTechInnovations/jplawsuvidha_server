@@ -116,7 +116,7 @@ router.post('/forgot-password', async (req, res) => {
 // ----------------------
 router.post('/reset-password', async (req, res) => {
   const { token, password } = req.body;
-
+   console.log('inside reset passworkd',req.body)
   if (!token || !password) {
     return res.status(400).json({
       status: 'error',

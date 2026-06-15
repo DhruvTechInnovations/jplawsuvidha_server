@@ -15,7 +15,7 @@ function profileMiddleware(req, res, next) {
 
     // Attach payload to request (very important)
     req.user = payload;
-      // console.log('inside profile middleware',payload)
+      console.log('inside profile middleware',payload)
 
 
     next();
@@ -23,4 +23,5 @@ function profileMiddleware(req, res, next) {
     return res.status(401).json({ message: "Invalid or expired token" });
   }
 };
+
 module.exports=profileMiddleware

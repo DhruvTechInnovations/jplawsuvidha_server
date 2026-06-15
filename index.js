@@ -1,5 +1,5 @@
-const express = require('express')
 require('dotenv').config();
+const express = require('express')
 const app = express()
 const bodyParser = require('body-parser')
 const cookieParser = require('cookie-parser');
@@ -16,15 +16,19 @@ const cors = require('cors');
 const mrouter = require('./routes/mobileLogin');
 const caseRouter = require('./routes/contact_us');
 const decaprouter = require('./routes/decap');
-const profile_router=require('./routes/advocate_profile')
-const router=require('./routes/forgotpassword')
-const leadRouter=require('./routes/leads')
-const adminRouter=require('./routes/admin');
+const profile_router = require('./routes/advocate_profile')
+const router = require('./routes/forgotpassword')
+const leadRouter = require('./routes/leads')
+const adminRouter = require('./routes/admin');
 const subRouter = require('./routes/subscription');
 const activityRouter = require('./routes/leadActivity');
-const allowedOrigins = [process.env.FRONTEND_URL,"http://localhost:3000",process.env.FRONTEND_URL_2];
+const fcm_router=require('./routes/fcm')
+const prouter=require('./routes/razorpay')
+const allowedOrigins = [process.env.FRONTEND_URL, "http://localhost:3001", process.env.FRONTEND_URL_2];
 const port = 3001;
-const rate_limiter=require('express-rate-limit')
+const rate_limiter = require('express-rate-limit');
+const { fcm } = require('googleapis/build/src/apis/fcm');
+const { notification_router } = require('./routes/notifications');
 app.use(cookieParser());
 if (process.env.FRONTEND_URL) {
   allowedOrigins.push(process.env.FRONTEND_URL);
@@ -32,13 +36,13 @@ if (process.env.FRONTEND_URL) {
 
 app.use(cors({
   origin: allowedOrigins,
-  credentials: true,              
+  credentials: true,
 }));
 
 app.use(bodyParser.json({
   type: 'application/json',
   verify: (req, res, buf) => {
-    req.rawBody = buf.toString(); 
+    req.rawBody = buf.toString();
   }
 }));
 
@@ -55,12 +59,15 @@ app.use('/api', mrouter)
 app.use('/api', payment_router)
 app.use('/api', caseRouter)
 app.use('/api/decap', decaprouter);
-app.use('/api',profile_router)
-app.use('/api',router)
-app.use('/api',leadRouter)
-app.use('/api',adminRouter) // for admin application built dont consider for production.
-app.use('/api',subRouter)
-app.use('/api',activityRouter)
+app.use('/api', profile_router)
+app.use('/api', router)
+app.use('/api', leadRouter)
+app.use('/api', adminRouter) // for admin application built dont consider for production.
+app.use('/api', subRouter)
+app.use('/api', activityRouter)
+app.use('/api',fcm_router)
+app.use('/api',prouter)
+app.use('/api',notification_router)
 
 // global error handler
 app.use((err, req, res, next) => {

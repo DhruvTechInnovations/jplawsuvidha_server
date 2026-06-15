@@ -3,8 +3,10 @@ const pool=require('../db/pg')
 const addLeadActivity = async (req, res) => {
   const { leadId } = req.params;
   const { activity } = req.body;
+  console.log('inside add lead acitivity')
+  console.log('lead id',leadId)
 // console.log('inside the leadactivity')
-// console.log('req.body : ',req.body)
+console.log('req.body : ',req.body)
 // console.log('req.params : ',req.params)
   const advocateInfo = req.user;
   // console.log('advocateInfo : ',advocateInfo)
