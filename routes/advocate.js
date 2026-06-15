@@ -11,7 +11,30 @@ const { sendAdminAdvocateRegistrationNotification } = require('../controllers/ad
 const fetchUser=require('../helper/login/fetchUser')
 const validateAccountStatus=require('../helper/login/validateAccountStatus')
 const handleFirstTimeLogin=require('../helper/login/handleFirstTimeLogin')
-const handleNormalLogin =require('../helper/login/handleNormalLogin')
+const handleNormalLogin =require('../helper/login/handleNormalLogin');
+const handleMobileLogin=require('../helper/login/normalLoginMobile')
+const { default: rateLimit } = require('express-rate-limit');
+// const registerLimiter = rateLimit({
+//   windowMs: 1 * 60 * 1000, 
+//   max: 5, 
+//   message: "Too many login attempts. Try again after 1 minute.",
+// });
+
+const loginLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 5, // 5 attempts per minute
+  message: {
+    status: "error",
+    message: "Too many login attempts. Try again after 1 minute.",
+  },
+  keyGenerator: (req) => {
+    const email = req.body.email?.toLowerCase().trim() || "unknown";
+    const ip = rateLimit.ipKeyGenerator(req);
+    return `${req.ip}_${email}`;
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 
 
@@ -120,7 +143,8 @@ res.status(201).json({
 })
 
 
-login_router.post('/login', async (req, res) => {
+login_router.post('/login',loginLimiter, async (req, res) => {
+  console.log('inside login')
   const { email, password } = req.body;
 
   try {
@@ -144,6 +168,36 @@ login_router.post('/login', async (req, res) => {
 });
 
 
+
+
+//mobile login
+login_router.post('/mobile/login', loginLimiter, async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    const user = await fetchUser(email);
+
+    validateAccountStatus(user);
+
+    if (user.force_change) {
+      return handleFirstTimeLogin(email, password, res);
+    }
+
+ 
+    await handleMobileLogin(email, password, res);
+
+  } catch (err) {
+    console.error('Mobile Login error:', err.message);
+    return res.status(err.status || 500).json({
+      status: 'error',
+      message: err.message || 'Login failed',
+    });
+  }
+});
+
+
+
+//set password
 login_router.post('/set-password', async (req, res) => {
   const { token, password } = req.body;
 // console.log('inside set-password')
@@ -205,7 +259,7 @@ login_router.post('/logout', (req, res) => {
   res.clearCookie('refreshToken', {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    sameSite: 'none',
   }); 
   res.json({ success: true });
 });
